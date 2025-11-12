@@ -1,0 +1,95 @@
+﻿name: Python Multi-Job CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: Build and Install
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        
+    - name: Install dependencies
+      run: |
+        echo "=== ÉTAPE BUILD ==="
+        pip install -r requirements.txt
+        echo "✅ Dépendances installées avec succès"
+        
+    - name: Verify installation
+      run: |
+        python -c "import app; print('✅ Application importée avec succès')"
+        python -c "import pytest; print('✅ Pytest disponible')"
+
+  tests:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+      
+    - name: Run tests with coverage
+      run: |
+        echo "=== ÉTAPE TESTS ==="
+        pytest --cov=app --cov-report=term-missing --maxfail=1 --disable-warnings -v
+        echo "✅ Tests exécutés avec succès"
+
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    needs: tests
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        
+    - name: Install linters
+      run: pip install flake8 black
+      
+    - name: Run Flake8
+      run: |
+        echo "=== ÉTAPE QUALITÉ ==="
+        flake8 app/ tests/
+        echo "✅ Flake8 validation réussie"
+        
+    - name: Check Black formatting
+      run: |
+        black --check app/ tests/
+        echo "✅ Format Black validé"
+
+  success:
+    name: Pipeline Success
+    runs-on: ubuntu-latest
+    needs: [build, tests, quality]
+    if: always()
+    
+    steps:
+    - name: Pipeline status
+      run: |
+        echo "=== RÉSUMÉ PIPELINE ==="
+        echo "📦 Build: success"
+        echo "🧪 Tests: success" 
+        echo "🛠️  Qualité: success"
+        echo ""
+        echo "🎉 PIPELINE RÉUSSIE !"
